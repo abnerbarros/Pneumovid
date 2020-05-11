@@ -516,18 +516,20 @@ switch (estPVCV){
                 pressaoSuporte = pressaoSuporte_prog;
                 sensibilidadePressao = sensibilidadePressao_prog;
 
-              if (fPressao < (pressaoSuporte - 0.2) ){
+              if (fPressao < ((pressaoSuporte - 1.0)) ){
                    estPSV = 21;        
                    LIGA_INS();
                    DESLIGA_EXP();
                    cntTMP=10;
-                } else if (fPressao > (pressaoSuporte + 0.2) ){
-                        pressaoLimiteSuporte = 0;
-                        estPSV = 22;
-                        LIGA_EXP();
-                        DESLIGA_INS();
-                        cntTMP=10;
-                      }else{
+                } else 
+//                if (fPressao > (pressaoSuporte + 0.2) ){
+//                        pressaoLimiteSuporte = 0;
+//                        estPSV = 22;
+//                        LIGA_EXP();
+//                        DESLIGA_INS();
+//                        cntTMP=10;
+//                      }else
+                      {
                          cntTMP = tempoApneia;  
                          estPSV = 3;
                          DESLIGA_EXP();
@@ -552,6 +554,7 @@ switch (estPVCV){
                 estPSV = 3;
              }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
                       estPSV = 0;
+                      DESLIGA_INS();
                   }
              break;
      case 22: if(!cntTMP) // tempo para estabilizar antes de medir a pressão
@@ -566,6 +569,7 @@ switch (estPVCV){
                 
              }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
                       estPSV = 0;
+                      DESLIGA_INS();
                   }
              break;  
              
@@ -587,6 +591,7 @@ switch (estPVCV){
                 
               }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
                       estPSV = 0;
+                      DESLIGA_INS();
                   }
               break;       
 
