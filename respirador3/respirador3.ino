@@ -7,7 +7,7 @@
 #define PINPOTFREQ 1
 #define PINVELINS 2
 #define SOLENOIDE_INS 13
-#define SOLENOIDE_EXP 10
+#define SOLENOIDE_EXP 10 
 #define ABRE 1
 #define FECHA 0
 #define PINPRESSAOINS 1
