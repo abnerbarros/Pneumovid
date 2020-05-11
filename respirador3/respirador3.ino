@@ -254,9 +254,6 @@ void loop() {
                                 break;
                   case 0x0032:// VCV
                                 cmdEmExecucao = VCV;
-                                cmdVCV = 1;
-                                estPCV = 0;
-                                estPSV = 0;
                                 volumeMaxINS_prog =  receiveData[VOLUME];
                                 rpm_prog = receiveData[FREQUENCIA];
                                 pressaoINS_prog = receiveData[PIP];
@@ -273,10 +270,7 @@ void loop() {
                                  break;
                   case 0x0033:// PCV
                                 cmdEmExecucao = PCV;
-                                cmdPCV = 1;
-                                estVCV = 0;
-                                estPSV = 0;
-                                volumeMaxINS_prog =  receiveData[VOLUME];
+                               volumeMaxINS_prog =  receiveData[VOLUME];
                                 rpm_prog = receiveData[FREQUENCIA];
                                 pressaoINS_prog = receiveData[PIP];
                                 pressaoPEEP_prog = receiveData[PEEP];
@@ -292,9 +286,6 @@ void loop() {
                                 break;
                   case 0x0034: // PSV
                                 cmdEmExecucao = PSV;
-                                cmdPSV = 1;
-                                estVCV = 0;
-                                estPCV = 0;
                                 volumeMaxINS_prog =  receiveData[VOLUME];
                                 rpm_prog = receiveData[FREQUENCIA];
                                 pressaoINS_prog = receiveData[PIP];
@@ -393,17 +384,20 @@ if ((est[3]!=estPVCV)||
        DESLIGA_EXP();
        LIGA_INS();
    }
+   
 /*
  * Monitora a tentativa de inpirar e gera alarme
  */
-   if ((inspirar) && (tempo) && (((cmdEmExecucao == VCV)||(cmdEmExecucao == PCV)) && (estPVCV!=41))) {
+ 
+   if ((inspirar) && (tempo) && (((cmdEmExecucao == VCV)||(cmdEmExecucao == PCV)) && (estPSV!=41))) {
           inspirar = 0;
             //ALARME
             
       }
+      
 if (tempo)      
 switch (estPVCV){
-     case 0: if ((cmdEmExecucao == VCV)||(cmdEmExecucao == PCV)){
+     case 0: if (((cmdEmExecucao == VCV)||(cmdEmExecucao == PCV))&&(estPSV == 0)){
                 pressaoPlatoCiclo = 0;
                 tempoInsCiclo = 0;
                 tempoExpCiclo = 0;
@@ -415,33 +409,38 @@ switch (estPVCV){
                 TIMER10MS = 0;
                 cntTmpLimiteINS = 0;
                 pressaoLimiteINS = 0;
+                
                 volumeMaxINS =  volumeMaxINS_prog;
                 rpm = rpm_prog;
                 pressaoINS = pressaoINS_prog;
                 pressaoPEEP = pressaoPEEP_prog;
                 tempoINS = tempoINS_prog;
-                tempoPausaINS= tempoPausaINS_prog;
-                tempoCiclo = tempoCiclo_prog;
                 tempoEXP = tempoEXP_prog;
+                tempoApneia = tempoApneia_prog;
+                tempoCiclo = tempoCiclo_prog;
+                pressaoSuporte = pressaoSuporte_prog;
                 sensibilidadePressao = sensibilidadePressao_prog;
+                
                 DESLIGA_EXP();
                 LIGA_INS();
                 estPVCV = 2;
                 cntTMP = tempoINS;
                 tmpAnaliseInspirar = 100;
                 
-              }
+              } 
               break;
      case 2:  if(
                  ((cmdEmExecucao == VCV)&&(fVolume >= volumeMaxINS))||
                  ((cmdEmExecucao == PCV)&&(pressaoLimiteINS))||
                  (!cntTMP))
-                 { // monitora se chegou ao volume ou pres´ão programado ou o fim do ciclo INS
+                 { // monitora se chegou ao volume ou pressão programado ou o fim do ciclo INS
                 pressaoLimiteINS = 0;
                 pressoaPicoCiclo = fPressao;
                 volumeCiclo = fVolume;
                 DESLIGA_INS();            
-                estPVCV = 3;           
+                estPVCV = 3; 
+                pressoaPicoUCiclo = pressoaPicoCiclo;
+                volumeUCiclo = volumeCiclo;           
                 } 
                 
               break;
@@ -451,8 +450,11 @@ switch (estPVCV){
                 cntTMP = tempoEXP;
                 tempoExpCiclo = cntTMP;
                 tempoInsCiclo = TIMER10MS;
+                tempoInsUCiclo = tempoInsCiclo;
                 relacaoIEUCiclo = 0;
                 pressaoPlatoCiclo = fPressao;
+                pressaoPlatoUCiclo= pressaoPlatoCiclo;
+                   
                 LIGA_EXP();
               }
               break;
@@ -476,12 +478,8 @@ switch (estPVCV){
                    estPVCV = 0;
                    inspirar=0;
                    pressaoLimiteInspirar = 0;
-                   tempoInsUCiclo = tempoInsCiclo;
                    tempoExpUCiclo = tempoExpCiclo; 
-                   pressoaPicoUCiclo = pressoaPicoCiclo;
-                   volumeUCiclo = volumeCiclo; 
                    relacaoIEUCiclo = relacaoIEUCiclo;
-                   pressaoPlatoUCiclo= pressaoPlatoCiclo;
                    flagsUCiclo = flagsCiclo;
                  }
                 break;           
@@ -490,9 +488,13 @@ switch (estPVCV){
 /*
  * Máquina de estados do modo de desmame (PSV)
  */
-   if (tempo)
+//   if (((cmdEmExecucao == PCV)||(cmdEmExecucao == VCV))&& (estPSV<4)) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
+//                      DESLIGA_INS();
+//                      estPSV = 0;
+//                  }
+  // if (tempo)
    switch (estPSV){
-     case 0: if (cmdEmExecucao == PSV){
+     case 0: if ((cmdEmExecucao == PSV)&&(estPVCV == 0)){
                 cmdPSV = 0;
                 estPSV = 1;
                 pressaoPlatoCiclo = 0;
@@ -502,24 +504,24 @@ switch (estPVCV){
                 volumeCiclo = 0;
                 relacaoIEUCiclo = 0;
                 flagsCiclo = 0;
+                
                 volumeMaxINS = volumeMaxINS_prog;
                 rpm = rpm_prog;
                 pressaoINS = pressaoINS_prog;
                 pressaoPEEP = pressaoPEEP_prog;
                 tempoINS = tempoINS_prog;
-                tempoPausaINS = tempoPausaINS_prog;
                 tempoEXP = tempoEXP_prog;
                 tempoApneia = tempoApneia_prog;
+                tempoCiclo = tempoCiclo_prog;
                 pressaoSuporte = pressaoSuporte_prog;
                 sensibilidadePressao = sensibilidadePressao_prog;
-            }
-            break;
-     case 1:    if (fPressao < (pressaoSuporte - 0.5) ){
+
+              if (fPressao < (pressaoSuporte - 0.2) ){
                    estPSV = 21;        
                    LIGA_INS();
                    DESLIGA_EXP();
                    cntTMP=10;
-                } else if (fPressao > (pressaoSuporte + 0.5) ){
+                } else if (fPressao > (pressaoSuporte + 0.2) ){
                         pressaoLimiteSuporte = 0;
                         estPSV = 22;
                         LIGA_EXP();
@@ -535,19 +537,24 @@ switch (estPVCV){
                          ptrWRpressaoAnalise = 0;
                          inspirar=0;
                       }
-                break;
-    case 21: if(!cntTMP)
+            }
+            break;
+                
+    case 21: if(!cntTMP) // tempo para estabilizar antes de medir a pressão
                if (fPressao >= pressaoSuporte ){
                 DESLIGA_INS();
                 cntTMP2=20;
                 cntTMP = tempoApneia;
                 pressaoLimiteInspirarPSV = 0;
+                inspirar=0;
                 ptrRDpressaoAnalise = 0;
                 ptrWRpressaoAnalise = 0;
                 estPSV = 3;
-             }
+             }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
+                      estPSV = 0;
+                  }
              break;
-     case 22: if(!cntTMP)
+     case 22: if(!cntTMP) // tempo para estabilizar antes de medir a pressão
                 if (pressaoLimiteSuporte ){
                 DESLIGA_EXP();
                 cntTMP2=20;
@@ -557,19 +564,17 @@ switch (estPVCV){
                 ptrWRpressaoAnalise = 0;
                 estPSV = 3;
                 
-             }
+             }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
+                      estPSV = 0;
+                  }
              break;  
-     case 31:if(!cntTMP2){
-                estPSV = 3;
-                pressaoLimiteInspirarPSV = 0;
-                ptrRDpressaoAnalise = 0;
-                ptrWRpressaoAnalise = 0;
-              }
-              break;              
+             
      case 3: if ((inspirar)||(pressaoLimiteInspirarPSV)||(!cntTMP)){ // Monitora se o paciente tentou inspirar ou se chegou ao  tempo limite de apneia
                 if (pressaoLimiteInspirarPSV)
-                  Serial2.print("Inspirar: "); Serial2.print(fPressao); Serial2.println(sensibilidadePressao);
-                estPSV = 4;
+                  Serial2.print("pressaoLimiteInspirarPSV: "); Serial2.println(fPressao); 
+                if (inspirar)
+                  Serial2.print("inspirar: "); Serial2.println(fPressao);   
+                estPSV = 5;
                 fVolume = 0;
                 inspirar = 0;
                 pressaoLimiteInspirarPSV=0;
@@ -577,11 +582,15 @@ switch (estPVCV){
                 LIGA_INS();
                 cntTMP = 10; // Aguarda 100 ms para começar a monitorar se chegou a presão de suporte
                 TIMER10MS = 0; // timer para contar o tempo de execução de cada fase do ciclo vcv
+                pressaoLimiteINS=0;
+                cntTmpLimiteINS = 0;
                 
-             } 
-             break;       
+              }else  if (cmdEmExecucao != PSV) { // Aborta o ciclo PSV caso chegue um comando PCV ou VCV e o paciente ainda não tiver inspirado
+                      estPSV = 0;
+                  }
+              break;       
 
-     case 4:if (!cntTMP){
+     case 4:if (!cntTMP){ // Aguarda 100 ms para começar a monitorar se chegou a presão de suporte
                   estPSV = 5;
                   pressaoLimiteINS=0; 
             }          
@@ -687,7 +696,7 @@ if (CLOCK10MS) {
     if (fPressao<=pressaoSuporte)
        cntTmpPressaoSuporte++;
     else cntTmpPressaoSuporte=0;
-    if (cntTmpPressaoSuporte>3)
+    if (cntTmpPressaoSuporte>1)
        pressaoLimiteSuporte = 1;   
   
   /*
